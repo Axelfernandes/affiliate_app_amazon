@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { generateProductContent } from '../function/generateProductContent/resource';
+import { findTrends } from '../function/findTrends/resource';
 
 const schema = a.schema({
   Product: a
@@ -22,17 +23,27 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.owner()]), // Only owner can manage suggestions
   
-  Mutation: a.query({
-    generateProductContent: a
-      .string() // The Lambda will return a JSON string
-      .arguments({
-        productName: a.string().required(),
-        productDescription: a.string(),
-        productUrl: a.string(),
-      })
-      .authorization((allow: { owner: () => any }) => [allow.owner()]) // Explicitly type 'allow'
-      .resolver(a.resolve.function(generateProductContent)), // Link to Lambda here
-  }),
+  // Define the custom mutation directly as a top-level field in the schema
+  generateProductContent: a
+    .mutation() // This defines a mutation *field*
+    .arguments({ // Arguments are defined here
+      productName: a.string().required(),
+      productDescription: a.string(),
+      productUrl: a.string(),
+    })
+    .returns(a.string()) // Return type
+    .handler(a.handler.function(generateProductContent))
+    .authorization((allow: { authenticated: () => any }) => [allow.authenticated()]),
+
+  // Define a custom query for finding trending products
+  findTrends: a
+    .query()
+    .arguments({
+      query: a.string(), // Optional search query for trends
+    })
+    .returns(a.string()) // Lambda will return a JSON string of suggestions
+    .handler(a.handler.function(findTrends))
+    .authorization((allow: { authenticated: () => any }) => [allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -2,6 +2,7 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { generateProductContent } from './function/generateProductContent/resource';
+import { findTrends } from './function/findTrends/resource';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -9,5 +10,6 @@ import { generateProductContent } from './function/generateProductContent/resour
 defineBackend({
   auth,
   data,
-  generateProductContent, // Add the function here
+  generateProductContent,
+  findTrends, // Add the findTrends function here
 });

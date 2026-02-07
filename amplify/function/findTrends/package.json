@@ -1,0 +1,14 @@
+{
+  "name": "findTrends",
+  "version": "1.0.0",
+  "description": "Lambda function to find trending products using Gemini API",
+  "main": "handler.ts",
+  "type": "module",
+  "scripts": {
+    "test": "echo \\\"Error: no test specified\\\" && exit 1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.11.0",
+    "aws-sdk": "^2.1611.0"
+  }
+}

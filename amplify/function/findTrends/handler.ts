@@ -22,40 +22,43 @@ function extractJSON(text: string) {
 }
 
 export const handler = async (event: any) => {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured.');
+  try {
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured.');
 
-  const query = event.arguments?.query || 'bestselling products';
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const query = event.arguments?.query || 'bestselling products';
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // ENFORCED GLOBAL RULE: Must use gemini-2.5-flash per user requirement
-  const modelsToTry = [
-    "gemini-2.5-flash",
-    "gemini-1.5-flash"
-  ];
-  let lastError = null;
+    // ENFORCED: Must use gemini-2.5-flash as the primary choice
+    const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash"];
+    let lastError = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const prompt = `Identify 3 trending products for: "${query}".
-      Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = `Identify 3 trending products for: "${query}".
+        Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text().trim();
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
 
-      const parsed = extractJSON(text);
-      return JSON.stringify(parsed);
-    } catch (error: any) {
-      console.warn(`Model ${modelName} failed:`, error?.message);
-      lastError = error;
-      if (error?.message?.includes('404')) continue;
-      break;
+        const parsed = extractJSON(text);
+        return JSON.stringify(parsed);
+      } catch (error: any) {
+        console.warn(`Model ${modelName} failed:`, error?.message);
+        lastError = error;
+        continue; // Try next model for any error
+      }
     }
-  }
 
-  return JSON.stringify([
-    { productName: "AI Error", sourceUrl: "#", reasonForSuggestion: "Service currently unavailable: " + (lastError?.message || "Unknown error") }
-  ]);
+    return JSON.stringify([
+      { productName: "AI Error", sourceUrl: "#", reasonForSuggestion: "Service unavailable: " + (lastError?.message || "Check logs") }
+    ]);
+  } catch (fatal: any) {
+    console.error('Trend Scout Fatal:', fatal);
+    return JSON.stringify([
+      { productName: "System Error", sourceUrl: "#", reasonForSuggestion: fatal.message }
+    ]);
+  }
 };

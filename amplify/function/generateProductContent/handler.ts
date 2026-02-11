@@ -15,7 +15,6 @@ function extractJSON(text: string) {
       try {
         return JSON.parse(jsonCandidate);
       } catch (e2: any) {
-        console.error('Extraction failed:', e2.message);
         throw new Error('Invalid JSON structure: ' + e2.message);
       }
     }
@@ -27,69 +26,67 @@ function extractJSON(text: string) {
  * AppSync Lambda Resolver Handler
  */
 export const handler = async (event: any) => {
-  console.log('Handler started for:', event.arguments?.productName);
+  try {
+    console.log('Handler invoked for:', event.arguments?.productName);
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY is missing');
-    throw new Error('GEMINI_API_KEY not configured.');
-  }
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured.');
 
-  const { productName, productDescription, productUrl } = event.arguments || {};
-  if (!productName) throw new Error('productName is required');
+    const { productName, productDescription, productUrl } = event.arguments || {};
+    if (!productName) throw new Error('productName is required');
 
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Use stable IDs. Note: "gemini-2.5-flash" is likely a typo or not yet available in all SDKs.
-  // ENFORCED GLOBAL RULE: Must use gemini-2.5-flash per user requirement
-  const modelsToTry = [
-    "gemini-2.5-flash",
-    "gemini-1.5-flash" // Safety fallback only if 2.5-flash literally fails to initialize
-  ];
+    // ENFORCED: Must use gemini-2.5-flash as the primary choice
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-1.5-flash"
+    ];
 
-  let lastError = null;
+    let lastError = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Trying model: ${modelName}`);
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const prompt = `You are a professional affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following:
-      
-      Product Name: ${productName}
-      ${productDescription ? `Product Description: ${productDescription}` : ''}
-      ${productUrl ? `Product URL: ${productUrl}` : ''}
-      
-      IMPORTANT: Return ONLY a valid JSON object.
-      {
-        "title": "...",
-        "description": "...",
-        "whyBuy": ["point 1", "point 2", "point 3"]
-      }`;
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`Starting generation with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text().trim();
+        const prompt = `You are a professional affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for:
+        
+        Product: ${productName}
+        ${productDescription ? `Details: ${productDescription}` : ''}
+        ${productUrl ? `URL: ${productUrl}` : ''}
+        
+        Return ONLY valid JSON:
+        {"title": "...", "description": "...", "whyBuy": ["...", "...", "..."]}`;
 
-      console.log(`Success with ${modelName}`);
-      const parsed = extractJSON(text);
-      return JSON.stringify(parsed);
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
 
-    } catch (error: any) {
-      console.error(`Attempt with ${modelName} failed:`, error?.message || error);
-      lastError = error;
-      // Continue if it's a 404/not found, otherwise throw to see the error in AppSync
-      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        console.log(`Model ${modelName} success.`);
+        const parsed = extractJSON(text);
+        return JSON.stringify(parsed);
+
+      } catch (error: any) {
+        console.error(`Attempt with ${modelName} failed:`, error?.message || error);
+        lastError = error;
+        if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+          continue;
+        }
+        // If it's a model specific crash (like 2.5 flash being unavailable or buggy), try the fallback
         continue;
       }
-      break;
     }
-  }
 
-  console.error('All models failed. Final error:', lastError?.message);
-  // Return a JSON string that the frontend can parse, even if it's an error state
-  return JSON.stringify({
-    title: `${productName} (Draft)`,
-    description: `AI Generation Error: ${lastError?.message || 'Unknown error'}. Please verify your API settings.`,
-    whyBuy: ["Check Gemini API Key", "Verify Model Access", "Manual Entry Recommended"]
-  });
+    throw lastError || new Error('All models failed');
+
+  } catch (topLevelError: any) {
+    console.error('CRITICAL TOP-LEVEL LAMBDA ERROR:', topLevelError);
+    // Return a structured error response that the frontend can handle gracefully
+    return JSON.stringify({
+      title: `${event.arguments?.productName || 'Product'} (Draft)`,
+      description: `AI Fail: ${topLevelError.message || 'The AI service encountered an error'}. Check terminal logs for details.`,
+      whyBuy: ["Try again in a moment", "Verify Gemini API access", "Manual edit recommended"]
+    });
+  }
 };

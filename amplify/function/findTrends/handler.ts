@@ -1,10 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
 /**
  * Robustly extract and parse JSON from AI response
  */
@@ -14,7 +9,6 @@ function extractJSON(text: string) {
   } catch (e) {
     const startIdx = text.indexOf('[');
     const endIdx = text.lastIndexOf(']');
-
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
       const jsonCandidate = text.substring(startIdx, endIdx + 1);
       try {
@@ -32,6 +26,13 @@ function extractJSON(text: string) {
  */
 export const handler = async (event: any) => {
   console.log('Received AppSync event:', JSON.stringify(event, null, 2));
+
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+    console.error('CRITICAL: GEMINI_API_KEY is missing from environment.');
+    throw new Error('Server configuration error: GEMINI_API_KEY missing.');
+  }
 
   const query = event.arguments?.query || 'bestselling products';
   const searchQueries = query.split(',');
@@ -56,6 +57,9 @@ export const handler = async (event: any) => {
   ]`;
 
   try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text().trim();

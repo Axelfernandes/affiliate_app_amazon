@@ -81,6 +81,14 @@ export default function BulkUpload() {
                     <div>
                         <h4 className="text-xl font-bold text-gray-900">Bulk Upload Products</h4>
                         <p className="text-gray-500 mt-1">Upload a CSV file to add multiple products to your Suggestions Inbox.</p>
+                        <a
+                            href="/sample_template.csv"
+                            download="auto_niche_template.csv"
+                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline bg-blue-50 px-3 py-1.5 rounded-full transition-all"
+                        >
+                            <FileText size={14} />
+                            Download CSV Template
+                        </a>
                     </div>
 
                     <div className="mt-4 flex flex-col items-center gap-2">

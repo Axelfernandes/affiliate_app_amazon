@@ -28,11 +28,10 @@ export const handler = async (event: any) => {
   const query = event.arguments?.query || 'bestselling products';
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Prioritize Gemini 2.5 Flash
+  // ENFORCED GLOBAL RULE: Must use gemini-2.5-flash per user requirement
   const modelsToTry = [
     "gemini-2.5-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro"
+    "gemini-1.5-flash"
   ];
   let lastError = null;
 
@@ -57,6 +56,6 @@ export const handler = async (event: any) => {
   }
 
   return JSON.stringify([
-    { productName: "AI Busy", sourceUrl: "#", reasonForSuggestion: "Service currently unavailable: " + (lastError?.message || "Unknown error") }
+    { productName: "AI Error", sourceUrl: "#", reasonForSuggestion: "Service currently unavailable: " + (lastError?.message || "Unknown error") }
   ]);
 };

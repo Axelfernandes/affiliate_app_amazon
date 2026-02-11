@@ -3,11 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "lint-staged": {
+    "*.{js,ts,tsx,json,css}": [
+      "prettier --write"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.14.0",
@@ -40,6 +46,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",

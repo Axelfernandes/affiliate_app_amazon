@@ -3,8 +3,6 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 import { Sparkles, Save, X } from 'lucide-react';
 
-const client = generateClient<Schema>();
-
 interface AddProductFormProps {
   initialData?: any;
   onSuccess?: () => void;
@@ -30,11 +28,13 @@ export default function AddProductForm({ initialData, onSuccess }: AddProductFor
     }
     setIsLoading(true);
     try {
+      const client = generateClient<Schema>();
       const { data, errors } = await client.mutations.generateProductContent({
         productName: productName,
         productUrl: productUrl
       });
       if (data) {
+        // data should now be a clean JSON string from the Lambda
         const content = JSON.parse(data);
         setGeneratedContent(content);
       }
@@ -56,6 +56,7 @@ export default function AddProductForm({ initialData, onSuccess }: AddProductFor
       return;
     }
     try {
+      const client = generateClient<Schema>();
       await client.models.Product.create({
         name: generatedContent.title,
         affiliateLink: productUrl,

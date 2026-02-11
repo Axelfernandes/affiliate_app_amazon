@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 
-import ProductCard from './ProductCard'; // Import the new component
-
-const client = generateClient<Schema>();
+import ProductCard from './ProductCard';
 
 export default function PublicProductGrid() {
   const [products, setProducts] = useState<Schema['Product'][]>([]);
 
   useEffect(() => {
+    const client = generateClient<Schema>();
     // Fetch only PUBLISHED products
     const sub = client.models.Product.observeQuery({
       filter: {

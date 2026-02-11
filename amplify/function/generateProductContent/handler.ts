@@ -1,28 +1,21 @@
-import type { APIGatewayProxyHandler } from 'aws-lambda';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Replace with your actual Gemini API Key from environment variables or Secrets Manager
-// For development, you can set it directly here:
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-export const handler: APIGatewayProxyHandler = async (event) => {
-  console.log('Received event:', JSON.stringify(event, null, 2));
+/**
+ * AppSync Lambda Resolver Handler
+ */
+export const handler = async (event: any) => {
+  console.log('Received AppSync event:', JSON.stringify(event, null, 2));
 
-  // Extract product details from the event body
-  const { productName, productDescription, productUrl } = JSON.parse(event.body || '{}');
+  // AppSync passes arguments in event.arguments
+  const { productName, productDescription, productUrl } = event.arguments || {};
 
   if (!productName) {
-    return {
-      statusCode: 400,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': '*',
-      },
-      body: JSON.stringify({ message: 'productName is required' }),
-    };
+    throw new Error('productName is required');
   }
 
   try {
@@ -49,37 +42,20 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     // Remove potential markdown code blocks if Gemini includes them
     const jsonString = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
 
-    let generatedContent;
+    // Validate JSON before returning
     try {
-      generatedContent = JSON.parse(jsonString);
-      console.log('Gemini Parsed Content:', generatedContent);
+      JSON.parse(jsonString);
+      return jsonString;
     } catch (parseError) {
       console.error('Failed to parse Gemini output as JSON:', text, parseError);
-      // Fallback if Gemini doesn't return perfect JSON
-      generatedContent = {
+      return JSON.stringify({
         title: `AI Generated: ${productName}`,
-        description: text.substring(0, 150) + '...', // Take first 150 chars as description
+        description: text.substring(0, 150) + '...',
         whyBuy: ['AI could not format points', 'Please review manually'],
-      };
+      });
     }
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': '*',
-      },
-      body: JSON.stringify(generatedContent),
-    };
   } catch (error: unknown) {
     console.error('Error generating content with Gemini:', error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': '*',
-      },
-      body: JSON.stringify({ message: 'Error generating content', error: error instanceof Error ? error.message : String(error) }),
-    };
+    throw new Error(error instanceof Error ? error.message : String(error));
   }
 };

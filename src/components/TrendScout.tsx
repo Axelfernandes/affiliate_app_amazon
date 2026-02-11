@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 
-const client = generateClient<Schema>();
-
 type Suggestion = {
   productName: string;
   sourceUrl: string;
@@ -18,6 +16,7 @@ export default function TrendScout() {
     setIsLoading(true);
     setSuggestions([]);
     try {
+      const client = generateClient<Schema>();
       const { data, errors } = await client.queries.findTrends({ query: 'bestselling tech gadgets' });
       if (data) {
         const trends = JSON.parse(data);
@@ -36,16 +35,14 @@ export default function TrendScout() {
   };
 
   const handleAddSuggestionAsProduct = async (suggestion: Suggestion) => {
-    // This could be enhanced to pre-fill the "Add Product" form,
-    // or directly trigger the generateProductContent mutation.
-    // For now, we'll save it as a Suggestion model and show an alert.
     try {
+      const client = generateClient<Schema>();
       await client.models.Suggestion.create({
         productName: suggestion.productName,
         sourceUrl: suggestion.sourceUrl,
         reasonForSuggestion: suggestion.reasonForSuggestion,
       });
-      alert(`Suggestion for "${suggestion.productName}" saved! You can now manage it from a separate suggestions list (to be built).`);
+      alert(`Suggestion for "${suggestion.productName}" saved! You can now manage it from the Suggestions tab.`);
     } catch (e) {
       console.error('Error saving suggestion:', e);
       alert('Error saving suggestion.');
@@ -54,28 +51,28 @@ export default function TrendScout() {
 
   return (
     <div className="space-y-6">
-      <button onClick={handleFindTrends} disabled={isLoading} className="w-full px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 disabled:bg-purple-300">
+      <button onClick={handleFindTrends} disabled={isLoading} className="w-full px-4 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 disabled:bg-purple-300 transition-all">
         {isLoading ? 'Searching for Trends...' : 'Find Trending Products'}
       </button>
 
       {suggestions.length > 0 && (
         <div className="space-y-4">
-          <h4 className="text-lg font-medium">Trending Product Suggestions:</h4>
+          <h4 className="text-lg font-medium text-gray-800">Trending Product Suggestions:</h4>
           <ul className="divide-y divide-gray-200">
             {suggestions.map((suggestion, i) => (
-              <li key={i} className="py-4 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold text-gray-800">{suggestion.productName}</p>
+              <li key={i} className="py-4 flex justify-between items-center gap-4">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">{suggestion.productName}</p>
                   <p className="text-sm text-gray-600">{suggestion.reasonForSuggestion}</p>
-                  <a href={suggestion.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">
+                  <a href={suggestion.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline inline-flex items-center gap-1 mt-1">
                     Source
                   </a>
                 </div>
-                <button 
-                  onClick={() => handleAddSuggestionAsProduct(suggestion)} 
-                  className="ml-4 px-3 py-1.5 bg-green-500 text-white text-sm rounded-md hover:bg-green-600"
+                <button
+                  onClick={() => handleAddSuggestionAsProduct(suggestion)}
+                  className="shrink-0 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
                 >
-                  Add to Page
+                  Save Suggestion
                 </button>
               </li>
             ))}

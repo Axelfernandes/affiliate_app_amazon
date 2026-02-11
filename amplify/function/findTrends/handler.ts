@@ -57,6 +57,6 @@ export const handler = async (event: any) => {
   }
 
   return JSON.stringify([
-    { productName: "Service Busy", sourceUrl: "#", reasonForSuggestion: "AI service currently unavailable." }
+    { productName: "Error: " + (lastError?.message || "AI Busy"), sourceUrl: "#", reasonForSuggestion: "AI service currently unavailable." }
   ]);
 };

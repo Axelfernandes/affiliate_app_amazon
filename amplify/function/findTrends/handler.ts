@@ -29,8 +29,12 @@ export const handler = async (event: any) => {
     const query = event.arguments?.query || 'bestselling products';
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-    // ENFORCED: Must use gemini-2.5-flash as the primary choice
-    const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash"];
+    // ENFORCED: Must use Gemini 2.x family per user requirement.
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-exp"
+    ];
     let lastError = null;
 
     for (const modelName of modelsToTry) {
@@ -48,12 +52,12 @@ export const handler = async (event: any) => {
       } catch (error: any) {
         console.warn(`Model ${modelName} failed:`, error?.message);
         lastError = error;
-        continue; // Try next model for any error
+        continue; // Try next 2.x model
       }
     }
 
     return JSON.stringify([
-      { productName: "AI Error", sourceUrl: "#", reasonForSuggestion: "Service unavailable: " + (lastError?.message || "Check logs") }
+      { productName: "AI Error", sourceUrl: "#", reasonForSuggestion: "Gemini 2.x unavailable: " + (lastError?.message || "Check logs") }
     ]);
   } catch (fatal: any) {
     console.error('Trend Scout Fatal:', fatal);

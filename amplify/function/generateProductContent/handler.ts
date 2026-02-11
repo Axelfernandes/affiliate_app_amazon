@@ -37,10 +37,13 @@ export const handler = async (event: any) => {
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-    // ENFORCED: Must use gemini-2.5-flash as the primary choice
+    // ENFORCED: Must use Gemini 2.x family per user requirement.
+    // 1.5 models are strictly excluded from fallbacks.
     const modelsToTry = [
       "gemini-2.5-flash",
-      "gemini-1.5-flash"
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-exp",
+      "gemini-2.0-pro-exp"
     ];
 
     let lastError = null;
@@ -70,23 +73,19 @@ export const handler = async (event: any) => {
       } catch (error: any) {
         console.error(`Attempt with ${modelName} failed:`, error?.message || error);
         lastError = error;
-        if (error?.message?.includes('404') || error?.message?.includes('not found')) {
-          continue;
-        }
-        // If it's a model specific crash (like 2.5 flash being unavailable or buggy), try the fallback
+        // Continue to try next 2.x model
         continue;
       }
     }
 
-    throw lastError || new Error('All models failed');
+    throw lastError || new Error('All Gemini 2.x models failed');
 
   } catch (topLevelError: any) {
     console.error('CRITICAL TOP-LEVEL LAMBDA ERROR:', topLevelError);
-    // Return a structured error response that the frontend can handle gracefully
     return JSON.stringify({
       title: `${event.arguments?.productName || 'Product'} (Draft)`,
-      description: `AI Fail: ${topLevelError.message || 'The AI service encountered an error'}. Check terminal logs for details.`,
-      whyBuy: ["Try again in a moment", "Verify Gemini API access", "Manual edit recommended"]
+      description: `AI Fail (2.x Models): ${topLevelError.message || 'The AI service encountered an error'}. Check terminal logs for details.`,
+      whyBuy: ["Try again in a moment", "Verify Gemini 2.x API access", "Manual edit recommended"]
     });
   }
 };

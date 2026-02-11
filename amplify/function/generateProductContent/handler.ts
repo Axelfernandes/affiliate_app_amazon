@@ -38,6 +38,7 @@ export const handler = async (event: any) => {
 
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // Standard stable model ID
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `You are a high-end affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following product to drive Amazon affiliate sales.

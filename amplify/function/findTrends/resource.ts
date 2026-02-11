@@ -1,4 +1,4 @@
-import { defineFunction } from '@aws-amplify/backend';
+import { defineFunction, secret } from '@aws-amplify/backend';
 import { NodeVersion } from '@aws-amplify/backend-function';
 
 export const findTrends = defineFunction({
@@ -7,6 +7,6 @@ export const findTrends = defineFunction({
   runtime: 20 as NodeVersion,
   environment: {
     // We'll add any necessary environment variables here, e.g., for Google Search API
-    GEMINI_API_KEY: 'YOUR_GEMINI_API_KEY_HERE', // Still need this for parsing results
+    GEMINI_API_KEY: secret('GEMINI_API_KEY'),
   },
 });

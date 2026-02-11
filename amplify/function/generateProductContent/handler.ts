@@ -3,10 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Replace with your actual Gemini API Key from environment variables or Secrets Manager
 // For development, you can set it directly here:
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'; 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   console.log('Received event:', JSON.stringify(event, null, 2));
@@ -26,22 +26,33 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   }
 
   try {
-    const prompt = `Generate a catchy product title, a 3-sentence description, and 3 key "Why Buy" points for the following product. Ensure the content is engaging and suitable for an Amazon affiliate marketing website.
+    const prompt = `You are a high-end affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following product. 
+    The goal is to drive Amazon affiliate sales. Make the "Why Buy" points focused on user benefits.
     
     Product Name: ${productName}
     ${productDescription ? `Product Description: ${productDescription}` : ''}
     ${productUrl ? `Product URL: ${productUrl}` : ''}
     
-    Format the output as a JSON object with keys: "title", "description", "whyBuy" (an array of strings).`;
+    IMPORTANT: Return ONLY a valid JSON object. No other text or markdown formatting.
+    Format your response EXACTLY like this:
+    {
+      "title": "...",
+      "description": "...",
+      "whyBuy": ["point 1", "point 2", "point 3"]
+    }`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
+    const text = response.text().trim();
 
-    // Attempt to parse the JSON output from Gemini
+    console.log('Gemini Raw Text Output:', text);
+    // Remove potential markdown code blocks if Gemini includes them
+    const jsonString = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+
     let generatedContent;
     try {
-      generatedContent = JSON.parse(text);
+      generatedContent = JSON.parse(jsonString);
+      console.log('Gemini Parsed Content:', generatedContent);
     } catch (parseError) {
       console.error('Failed to parse Gemini output as JSON:', text, parseError);
       // Fallback if Gemini doesn't return perfect JSON

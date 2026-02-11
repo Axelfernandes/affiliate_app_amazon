@@ -33,10 +33,16 @@ export default function AddProductForm({ initialData, onSuccess }: AddProductFor
         productName: productName,
         productUrl: productUrl
       });
+      console.log('DEBUG: generateProductContent raw data:', data);
       if (data) {
-        // data should now be a clean JSON string from the Lambda
-        const content = JSON.parse(data);
-        setGeneratedContent(content);
+        let content;
+        try {
+          content = typeof data === 'string' ? JSON.parse(data) : data;
+          setGeneratedContent(content);
+        } catch (parseErr) {
+          console.error('JSON Parse Error in AddProductForm. Data was:', data);
+          throw parseErr;
+        }
       }
       if (errors) {
         console.error('Error generating content:', errors);

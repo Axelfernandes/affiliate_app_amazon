@@ -6,16 +6,36 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
+ * Robustly extract and parse JSON from AI response
+ */
+function extractJSON(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    const startIdx = text.indexOf('[');
+    const endIdx = text.lastIndexOf(']');
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const jsonCandidate = text.substring(startIdx, endIdx + 1);
+      try {
+        return JSON.parse(jsonCandidate);
+      } catch (e2) {
+        throw new Error('Invalid JSON structure');
+      }
+    }
+    throw new Error('No JSON array found in response');
+  }
+}
+
+/**
  * AppSync Lambda Resolver Handler
  */
 export const handler = async (event: any) => {
   console.log('Received AppSync event:', JSON.stringify(event, null, 2));
 
-  // AppSync passes arguments in event.arguments
   const query = event.arguments?.query || 'bestselling products';
   const searchQueries = query.split(',');
 
-  // In a real scenario, this would involve calling a web search API
   const simulatedSearchResults = [
     { title: 'Bestselling Wireless Earbuds on Amazon', url: 'https://amazon.com/earbuds', content: 'Top rated noise-cancelling earbuds, long battery life, comfortable fit.' },
     { title: 'Popular Smartwatch for Fitness Tracking', url: 'https://amazon.com/smartwatch', content: 'Measures heart rate, GPS, sleep tracking, waterproof.' },
@@ -41,15 +61,12 @@ export const handler = async (event: any) => {
     const text = response.text().trim();
 
     console.log('Gemini Raw Text Output:', text);
-    // Remove potential markdown code blocks
-    const jsonString = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
 
-    // Validate JSON before returning
     try {
-      JSON.parse(jsonString);
-      return jsonString;
+      const parsed = extractJSON(text);
+      return JSON.stringify(parsed);
     } catch (parseError: unknown) {
-      console.error('Failed to parse Gemini output as JSON for findTrends:', text, parseError);
+      console.error('Failed to parse Gemini output:', text, parseError);
       throw new Error('Invalid JSON returned from AI');
     }
   } catch (error: unknown) {
@@ -57,4 +74,3 @@ export const handler = async (event: any) => {
     throw new Error(error instanceof Error ? error.message : String(error));
   }
 };
-

@@ -6,12 +6,36 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
+ * Robustly extract and parse JSON from AI response
+ */
+function extractJSON(text: string) {
+  try {
+    // Try a direct parse first
+    return JSON.parse(text);
+  } catch (e) {
+    // Attempt to extract content between first { and last }
+    const startIdx = text.indexOf('{');
+    const endIdx = text.lastIndexOf('}');
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const jsonCandidate = text.substring(startIdx, endIdx + 1);
+      try {
+        return JSON.parse(jsonCandidate);
+      } catch (e2) {
+        console.error('Failed to parse candidate JSON:', jsonCandidate);
+        throw new Error('Invalid JSON structure');
+      }
+    }
+    throw new Error('No JSON object found in response');
+  }
+}
+
+/**
  * AppSync Lambda Resolver Handler
  */
 export const handler = async (event: any) => {
   console.log('Received AppSync event:', JSON.stringify(event, null, 2));
 
-  // AppSync passes arguments in event.arguments
   const { productName, productDescription, productUrl } = event.arguments || {};
 
   if (!productName) {
@@ -39,15 +63,13 @@ export const handler = async (event: any) => {
     const text = response.text().trim();
 
     console.log('Gemini Raw Text Output:', text);
-    // Remove potential markdown code blocks if Gemini includes them
-    const jsonString = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
 
-    // Validate JSON before returning
     try {
-      JSON.parse(jsonString);
-      return jsonString;
+      const parsed = extractJSON(text);
+      // Normalize back to a string for the AppSync String return type
+      return JSON.stringify(parsed);
     } catch (parseError) {
-      console.error('Failed to parse Gemini output as JSON:', text, parseError);
+      console.error('Failed to parse Gemini output:', text, parseError);
       return JSON.stringify({
         title: `AI Generated: ${productName}`,
         description: text.substring(0, 150) + '...',

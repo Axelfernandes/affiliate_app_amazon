@@ -18,9 +18,16 @@ export default function TrendScout() {
     try {
       const client = generateClient<Schema>();
       const { data, errors } = await client.queries.findTrends({ query: 'bestselling tech gadgets' });
+      console.log('DEBUG: findTrends raw data:', data);
       if (data) {
-        const trends = JSON.parse(data);
-        setSuggestions(trends);
+        let trends;
+        try {
+          trends = typeof data === 'string' ? JSON.parse(data) : data;
+          setSuggestions(trends);
+        } catch (parseErr) {
+          console.error('JSON Parse Error in TrendScout. Data was:', data);
+          throw parseErr;
+        }
       }
       if (errors) {
         console.error('Error finding trends:', errors);

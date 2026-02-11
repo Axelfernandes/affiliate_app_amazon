@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
-import { Trash2, ExternalLink, AlertTriangle, Check, X } from 'lucide-react';
+import { Trash2, ExternalLink, AlertTriangle, Check, X, RefreshCw, Layers } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export default function ProductList() {
   const [products, setProducts] = useState<Schema['Product'][]>([]);
@@ -33,61 +34,75 @@ export default function ProductList() {
       setConfirmingDelete(null);
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Failed to delete product. Please check console for details.');
     }
   };
 
-  if (isLoading) return <div className="text-gray-500 italic p-6 text-center">Loading products...</div>;
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h4 className="text-xl font-bold text-gray-900">All Published Products</h4>
-        <button onClick={fetchProducts} className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Refresh</button>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-3">
+          <Layers className="text-indigo-600" size={20} />
+          <h4 className="text-lg font-display font-bold text-slate-800 uppercase tracking-wider">Inventory Hub</h4>
+        </div>
+        <button
+          onClick={fetchProducts}
+          disabled={isLoading}
+          className="p-2 text-slate-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={18} className={cn(isLoading && "animate-spin")} />
+        </button>
       </div>
 
-      {products.length === 0 ? (
-        <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-2xl">
-          <p className="text-gray-500">No products found. Start by adding one!</p>
+      {isLoading && products.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center gap-4">
+          <div className="w-12 h-12 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-slate-400 font-medium">Syncing content...</p>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="p-20 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+          <p className="text-slate-400 font-display font-bold text-xl uppercase tracking-widest">Empty Vault</p>
+          <p className="text-slate-400/60 mt-2">Generate or add products to see them here.</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {products.map((product) => (
-            <div key={product.id} className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h5 className="font-bold text-gray-900 text-lg">{product.name}</h5>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${product.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+            <div key={product.id} className="p-6 bg-white border border-slate-100 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 group hover:border-indigo-100 hover:bg-slate-50/50 transition-all duration-300 shadow-sm">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <h5 className="font-display font-bold text-slate-900 text-xl leading-none">{product.name}</h5>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                    product.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  )}>
                     {product.status}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{product.description}</p>
-                <div className="flex items-center gap-3 mt-3">
-                  <a href={product.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed shrink-0">{product.description}</p>
+                <div className="flex items-center gap-4">
+                  <a
+                    href={product.affiliateLink || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors uppercase tracking-widest"
+                  >
                     <ExternalLink size={12} />
-                    View Affiliate Link
+                    View Live Link
                   </a>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 {confirmingDelete === product.id ? (
-                  <div className="flex items-center gap-2 bg-red-50 p-2 rounded-xl animate-in zoom-in-95 duration-200">
-                    <span className="text-xs font-bold text-red-600 px-2 flex items-center gap-1">
-                      <AlertTriangle size={14} />
-                      Confirm?
-                    </span>
+                  <div className="flex items-center gap-2 bg-red-50 p-2 rounded-xl border border-red-100">
                     <button
                       onClick={() => handleDelete(product.id)}
-                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm transition-all"
-                      title="Confirm Delete"
+                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md"
                     >
                       <Check size={18} />
                     </button>
                     <button
                       onClick={() => setConfirmingDelete(null)}
-                      className="p-2 bg-white border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 transition-all"
-                      title="Cancel"
+                      className="p-2 text-slate-400 rounded-lg hover:bg-slate-100"
                     >
                       <X size={18} />
                     </button>
@@ -95,8 +110,8 @@ export default function ProductList() {
                 ) : (
                   <button
                     onClick={() => setConfirmingDelete(product.id)}
-                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                    title="Delete Product"
+                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    title="Evict Product"
                   >
                     <Trash2 size={20} />
                   </button>

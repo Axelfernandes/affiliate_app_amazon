@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
+import { Check, Bookmark, Search, Cpu, Zap, ExternalLink } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 type Suggestion = {
   productName: string;
   sourceUrl: string;
   reasonForSuggestion: string;
 }
-
-import { Check, Bookmark } from 'lucide-react';
 
 export default function TrendScout() {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,18 +23,10 @@ export default function TrendScout() {
       const client = generateClient<Schema>();
       const { data, errors } = await client.queries.findTrends({ query: 'bestselling tech gadgets' });
       if (data) {
-        let trends;
-        try {
-          trends = typeof data === 'string' ? JSON.parse(data) : data;
-          setSuggestions(trends);
-        } catch (parseErr) {
-          console.error('JSON Parse Error in TrendScout. Data was:', data);
-          throw parseErr;
-        }
+        let trends = typeof data === 'string' ? JSON.parse(data) : data;
+        setSuggestions(trends);
       }
-      if (errors) {
-        console.error('Error finding trends:', errors);
-      }
+      if (errors) console.error('Error finding trends:', errors);
     } catch (e) {
       console.error('Error:', e);
     } finally {
@@ -43,7 +35,7 @@ export default function TrendScout() {
   };
 
   const handleAddSuggestionAsProduct = async (suggestion: Suggestion, index: number) => {
-    if (savedIndices.has(index)) return; // Already saved
+    if (savedIndices.has(index)) return;
 
     try {
       const client = generateClient<Schema>();
@@ -52,60 +44,79 @@ export default function TrendScout() {
         sourceUrl: suggestion.sourceUrl,
         reasonForSuggestion: suggestion.reasonForSuggestion,
       });
-
-      // Update saved state for visual feedback
       setSavedIndices(prev => new Set(prev).add(index));
     } catch (e) {
       console.error('Error saving suggestion:', e);
-      alert('Error saving suggestion.');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <button onClick={handleFindTrends} disabled={isLoading} className="w-full px-4 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 disabled:bg-purple-300 transition-all flex items-center justify-center gap-2">
-        {isLoading ? 'Searching for Trends...' : 'Find Trending Products'}
-      </button>
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="flex flex-col items-center justify-center p-12 bg-indigo-50/50 border border-indigo-100 rounded-3xl text-center gap-6">
+        <div className="p-4 bg-indigo-600/10 rounded-full animate-pulse">
+          <Zap className="text-indigo-600" size={32} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-display font-black text-slate-900">AI TREND SCANNER</h3>
+          <p className="text-slate-500 text-sm max-w-md mx-auto font-medium">
+            Tap into Gemini 2.5 Flash to discover high-velocity products before they hit the mainstream.
+          </p>
+        </div>
+
+        <button
+          onClick={handleFindTrends}
+          disabled={isLoading}
+          className="btn-premium bg-indigo-600 text-white px-10 py-4 font-black shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 disabled:grayscale"
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-3">
+              <Cpu className="animate-spin" size={20} />
+              ANALYZING MARKETS...
+            </div>
+          ) : (
+            'START SCAN'
+          )}
+        </button>
+      </div>
 
       {suggestions.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-800">Trending Product Suggestions:</h4>
-          <ul className="divide-y divide-gray-200">
+        <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-700">
+          <div className="flex items-center gap-3">
+            <div className="h-px bg-slate-100 flex-1" />
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Scout Results</h4>
+            <div className="h-px bg-slate-100 flex-1" />
+          </div>
+
+          <div className="grid gap-4">
             {suggestions.map((suggestion, i) => {
               const isSaved = savedIndices.has(i);
               return (
-                <li key={i} className="py-4 flex justify-between items-center gap-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{suggestion.productName}</p>
-                    <p className="text-sm text-gray-600">{suggestion.reasonForSuggestion}</p>
-                    <a href={suggestion.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline inline-flex items-center gap-1 mt-1">
-                      Source
+                <div key={i} className="p-6 bg-white border border-slate-100 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-indigo-100 hover:bg-slate-50/50 transition-all shadow-sm">
+                  <div className="flex-1 space-y-2">
+                    <p className="font-display font-black text-slate-900 text-xl">{suggestion.productName}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed font-medium">{suggestion.reasonForSuggestion}</p>
+                    <a href={suggestion.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-indigo-600/60 hover:text-indigo-600 inline-flex items-center gap-1 uppercase tracking-widest transition-colors">
+                      <ExternalLink size={12} />
+                      Verify Source
                     </a>
                   </div>
                   <button
                     onClick={() => handleAddSuggestionAsProduct(suggestion, i)}
                     disabled={isSaved}
-                    className={`shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${isSaved
-                      ? 'bg-gray-100 text-green-600 cursor-default'
-                      : 'bg-green-500 text-white hover:bg-green-600 active:scale-95'
-                      }`}
-                  >
-                    {isSaved ? (
-                      <>
-                        <Check size={16} />
-                        Saved
-                      </>
-                    ) : (
-                      <>
-                        <Bookmark size={16} />
-                        Save Suggestion
-                      </>
+                    className={cn(
+                      "shrink-0 btn-premium flex items-center gap-2 px-6 py-3",
+                      isSaved
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default'
+                        : 'bg-white text-slate-900 border border-slate-200 hover:bg-emerald-600 hover:text-white hover:border-transparent'
                     )}
+                  >
+                    {isSaved ? <Check size={18} /> : <Bookmark size={18} />}
+                    <span className="text-xs uppercase font-black">{isSaved ? 'COLLECTED' : 'SAVE TO INBOX'}</span>
                   </button>
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         </div>
       )}
     </div>

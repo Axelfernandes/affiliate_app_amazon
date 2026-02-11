@@ -5,7 +5,7 @@ import type { Schema } from '../../amplify/data/resource';
 import ProductCard from './ProductCard';
 
 export default function PublicProductGrid() {
-  const [products, setProducts] = useState<Schema['Product'][]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     const client = generateClient<Schema>();
@@ -22,14 +22,20 @@ export default function PublicProductGrid() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-900 p-px">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-      {/* Add empty placeholder cards to fill the grid */}
-      {Array.from({ length: Math.max(0, 8 - products.length) }).map((_, i) => (
-        <div key={`placeholder-${i}`} className="bg-black aspect-square" />
-      ))}
+    <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+        {/* Placeholder cards for a full layout feel if empty */}
+        {products.length === 0 && Array.from({ length: 4 }).map((_, i) => (
+          <div key={`placeholder-${i}`} className="bg-white border border-slate-100 rounded-3xl animate-pulse h-96 flex flex-col gap-4 p-6 shadow-sm">
+            <div className="h-8 w-3/4 bg-slate-50 rounded-lg" />
+            <div className="h-12 w-1/2 bg-slate-50 rounded-lg" />
+            <div className="mt-auto h-12 w-full bg-slate-50 rounded-lg" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

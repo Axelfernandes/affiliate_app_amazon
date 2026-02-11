@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
-import { Trash2, PlusCircle, ExternalLink } from 'lucide-react';
+import { Trash2, PlusCircle, ExternalLink, Inbox, RefreshCw } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface SuggestionListProps {
     onApprove: (suggestion: any) => void;
@@ -38,43 +39,64 @@ export default function SuggestionList({ onApprove }: SuggestionListProps) {
         }
     };
 
-    if (isLoading) return <div className="text-gray-500 italic p-6 text-center">Loading suggestions...</div>;
-
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h4 className="text-xl font-bold text-gray-900">Suggestions Inbox</h4>
-                <button onClick={fetchSuggestions} className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Refresh</button>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="flex items-center gap-3">
+                    <Inbox className="text-indigo-600" size={20} />
+                    <h4 className="text-lg font-display font-bold text-slate-800 uppercase tracking-wider">Opportunity Inbox</h4>
+                </div>
+                <button
+                    onClick={fetchSuggestions}
+                    disabled={isLoading}
+                    className="p-2 text-slate-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+                >
+                    <RefreshCw size={18} className={cn(isLoading && "animate-spin")} />
+                </button>
             </div>
 
-            {suggestions.length === 0 ? (
-                <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-2xl">
-                    <p className="text-gray-500">No suggestions saved yet. Go to Trend Scout to find some!</p>
+            {isLoading && suggestions.length === 0 ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-4">
+                    <div className="w-12 h-12 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin" />
+                    <p className="text-slate-400 font-medium">Fetching leads...</p>
+                </div>
+            ) : suggestions.length === 0 ? (
+                <div className="p-20 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                    <p className="text-slate-400 font-display font-bold text-xl uppercase tracking-widest">Inbox Clear</p>
+                    <p className="text-slate-400/60 mt-2">No new trends captured yet. Use the Scout to find deals.</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
                     {suggestions.map((s) => (
-                        <div key={s.id} className="p-5 border border-gray-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h5 className="font-bold text-gray-900 text-lg">{s.productName}</h5>
-                                    <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all">
-                                        <ExternalLink size={16} />
+                        <div key={s.id} className="p-6 bg-white border border-slate-100 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-indigo-100 hover:bg-slate-50/50 transition-all shadow-sm">
+                            <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-3">
+                                    <h5 className="font-display font-bold text-slate-900 text-xl leading-none">{s.productName}</h5>
+                                    <a
+                                        href={s.sourceUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-all"
+                                        title="Source"
+                                    >
+                                        <ExternalLink size={14} />
                                     </a>
                                 </div>
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{s.reasonForSuggestion}</p>
+                                <p className="text-sm text-slate-500 leading-relaxed font-medium line-clamp-2">{s.reasonForSuggestion}</p>
                             </div>
-                            <div className="flex items-center gap-3 w-full sm:w-auto">
+
+                            <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
                                 <button
                                     onClick={() => onApprove(s)}
-                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 shadow-sm transition-all"
+                                    className="flex-1 md:flex-none btn-premium bg-indigo-600 text-white flex items-center justify-center gap-2 px-6 py-3 shadow-lg shadow-indigo-100"
                                 >
                                     <PlusCircle size={18} />
-                                    Create Product
+                                    <span className="text-xs font-black uppercase">Build Product</span>
                                 </button>
                                 <button
                                     onClick={() => handleDelete(s.id)}
-                                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                    title="Discard"
                                 >
                                     <Trash2 size={20} />
                                 </button>

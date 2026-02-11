@@ -47,10 +47,9 @@ export const handler = async (event: any) => {
     // ENFORCED: Must use Gemini 2.x family.
     const modelsToTry = [
       "gemini-2.5-flash",
-      "gemini-2.0-flash-001",
+      "gemini-2.5-pro",
       "gemini-2.0-flash",
-      "gemini-2.0-flash-lite-preview",
-      "gemini-2.0-pro-exp"
+      "gemini-2.0-flash-lite-preview-02-05"
     ];
 
     let lastError = null;
@@ -59,15 +58,22 @@ export const handler = async (event: any) => {
       try {
         console.log(`[MODEL START] Attempting: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = `You are a professional affiliate marketing copywriter and data extractor. 
+        Analyze the following information and generate:
+        1. A compelling product title.
+        2. A 3-sentence persuasive description.
+        3. 3 key "Why Buy" points.
+        4. The current price (return ONLY numeric value, e.g., 149.99).
+        5. The original/MSRP price if available (return ONLY numeric value).
 
-        const prompt = `You are a professional affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for:
-        
         Product: ${productName}
         ${productDescription ? `Details: ${productDescription}` : ''}
         ${productUrl ? `URL: ${productUrl}` : ''}
         
+        CRITICAL: If prices are found in the text or URL context, prioritize them. If not found, estimate based on current market data for this specific model.
+        
         Return ONLY valid JSON:
-        {"title": "...", "description": "...", "whyBuy": ["...", "...", "..."]}`;
+        {"title": "...", "description": "...", "whyBuy": ["...", "...", "..."], "currentPrice": 123.45, "originalPrice": 150.00}`;
 
         console.log(`[GENERATE START] Calling model.generateContent for ${modelName}...`);
         const result = await model.generateContent(prompt);

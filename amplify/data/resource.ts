@@ -11,6 +11,9 @@ const schema = a.schema({
       aiReview: a.string(),
       images: a.string().array(), // Store image URLs
       status: a.string().default('DRAFT'), // DRAFT, PUBLISHED
+      currentPrice: a.float(),
+      originalPrice: a.float(),
+      priceHistory: a.json(), // Stores array of {date: string, price: number}
     })
     .authorization((allow) => [allow.owner()]), // Only owner can create, read, update, delete their products
   Suggestion: a
@@ -22,7 +25,7 @@ const schema = a.schema({
       approvedProductId: a.id(),
     })
     .authorization((allow) => [allow.owner()]), // Only owner can manage suggestions
-  
+
   // Define the custom mutation directly as a top-level field in the schema
   generateProductContent: a
     .mutation() // This defines a mutation *field*
@@ -31,7 +34,7 @@ const schema = a.schema({
       productDescription: a.string(),
       productUrl: a.string(),
     })
-    .returns(a.string()) // Return type
+    .returns(a.string()) // Return type: JSON string with title, description, whyBuy, price, etc.
     .handler(a.handler.function(generateProductContent))
     .authorization((allow: { authenticated: () => any }) => [allow.authenticated()]),
 

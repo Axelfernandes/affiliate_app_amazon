@@ -3,14 +3,9 @@ import ProductList from './ProductList';
 import AddProductForm from './AddProductForm';
 import TrendScout from './TrendScout';
 import SuggestionList from './SuggestionList';
-import { LayoutDashboard, PlusCircle, TrendingUp, Inbox, LogOut } from 'lucide-react';
+import BulkUpload from './BulkUpload';
+import { LayoutDashboard, PlusCircle, TrendingUp, Inbox, LogOut, Upload } from 'lucide-react';
 
-interface User {
-  username: string;
-  signInDetails?: {
-    loginId?: string;
-  };
-}
 
 interface AdminDashboardProps {
   signOut?: () => void;
@@ -18,7 +13,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ signOut, user }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'products' | 'add' | 'trends' | 'suggestions'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'add' | 'trends' | 'suggestions' | 'bulk'>('products');
   const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
 
   const handleApproveSuggestion = (suggestion: any) => {
@@ -31,6 +26,7 @@ export default function AdminDashboard({ signOut, user }: AdminDashboardProps) {
     { id: 'add', label: 'Add Product', icon: PlusCircle },
     { id: 'trends', label: 'Trend Scout', icon: TrendingUp },
     { id: 'suggestions', label: 'Suggestions', icon: Inbox },
+    { id: 'bulk', label: 'Bulk Upload', icon: Upload }, // Import the Upload icon from lucide-react if not there, wait I'll check imports
   ];
 
   return (
@@ -51,8 +47,8 @@ export default function AdminDashboard({ signOut, user }: AdminDashboardProps) {
                 if (item.id !== 'add') setSelectedSuggestion(null);
               }}
               className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === item.id
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
                 }`}
             >
               <item.icon size={18} />
@@ -95,6 +91,7 @@ export default function AdminDashboard({ signOut, user }: AdminDashboardProps) {
             {activeTab === 'suggestions' && (
               <SuggestionList onApprove={handleApproveSuggestion} />
             )}
+            {activeTab === 'bulk' && <BulkUpload />}
           </div>
         </div>
       </main>

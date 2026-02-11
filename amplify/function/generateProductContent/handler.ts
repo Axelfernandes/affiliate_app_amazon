@@ -17,7 +17,7 @@ function extractJSON(text: string) {
         throw new Error('Invalid JSON structure');
       }
     }
-    throw new Error('No JSON object found in response");
+    throw new Error('No JSON object found in response');
   }
 }
 

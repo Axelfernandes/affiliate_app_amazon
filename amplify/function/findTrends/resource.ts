@@ -2,11 +2,11 @@ import { defineFunction, secret } from '@aws-amplify/backend';
 import { NodeVersion } from '@aws-amplify/backend-function';
 
 export const findTrends = defineFunction({
-  name: 'findTrends', // Explicitly name the function
+  name: 'findTrends',
   entry: './handler.ts',
   runtime: 20 as NodeVersion,
+  memorySize: 512,
   environment: {
-    // We'll add any necessary environment variables here, e.g., for Google Search API
     GEMINI_API_KEY: secret('GEMINI_API_KEY'),
   },
 });

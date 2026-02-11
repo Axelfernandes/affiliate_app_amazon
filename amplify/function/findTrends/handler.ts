@@ -53,7 +53,7 @@ export const handler = async (event: any) => {
   } catch (error: any) {
     console.error('Trend Scout Error:', error);
     return JSON.stringify([
-      { productName: "Demo Product 1", sourceUrl: "#", reasonForSuggestion: "System fallback active" }
+      { productName: "Error: " + (error?.message || "Unknown error"), sourceUrl: "#", reasonForSuggestion: "Please check your AI configuration" }
     ]);
   }
 };

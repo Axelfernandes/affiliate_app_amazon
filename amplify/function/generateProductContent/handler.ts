@@ -64,10 +64,9 @@ export const handler = async (event: any) => {
 
   } catch (error: any) {
     console.error('Gemini Execution Error:', error);
-    // Return a graceful fallback instead of crashing
     return JSON.stringify({
       title: `${productName} (AI Draft)`,
-      description: "AI was unable to generate content at this time. Please check your API key and try again.",
+      description: `AI Error: ${error?.message || 'Unknown error'}`,
       whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
     });
   }

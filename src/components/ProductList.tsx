@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
-import { Trash2, ExternalLink } from 'lucide-react';
+import { Trash2, ExternalLink, AlertTriangle, Check, X } from 'lucide-react';
 
 export default function ProductList() {
   const [products, setProducts] = useState<Schema['Product'][]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -25,13 +26,14 @@ export default function ProductList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
     try {
       const client = generateClient<Schema>();
       await client.models.Product.delete({ id });
       setProducts(prev => prev.filter(p => p.id !== id));
+      setConfirmingDelete(null);
     } catch (error) {
       console.error('Error deleting product:', error);
+      alert('Failed to delete product. Please check console for details.');
     }
   };
 
@@ -67,14 +69,38 @@ export default function ProductList() {
                   </a>
                 </div>
               </div>
+
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Delete Product"
-                >
-                  <Trash2 size={20} />
-                </button>
+                {confirmingDelete === product.id ? (
+                  <div className="flex items-center gap-2 bg-red-50 p-2 rounded-xl animate-in zoom-in-95 duration-200">
+                    <span className="text-xs font-bold text-red-600 px-2 flex items-center gap-1">
+                      <AlertTriangle size={14} />
+                      Confirm?
+                    </span>
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm transition-all"
+                      title="Confirm Delete"
+                    >
+                      <Check size={18} />
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDelete(null)}
+                      className="p-2 bg-white border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 transition-all"
+                      title="Cancel"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingDelete(product.id)}
+                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    title="Delete Product"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                )}
               </div>
             </div>
           ))}

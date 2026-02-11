@@ -33,7 +33,6 @@ export default function AddProductForm({ initialData, onSuccess }: AddProductFor
         productName: productName,
         productUrl: productUrl
       });
-      console.log('DEBUG: generateProductContent raw data:', data);
       if (data) {
         let content;
         try {

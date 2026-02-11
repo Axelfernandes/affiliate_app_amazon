@@ -18,7 +18,6 @@ export default function TrendScout() {
     try {
       const client = generateClient<Schema>();
       const { data, errors } = await client.queries.findTrends({ query: 'bestselling tech gadgets' });
-      console.log('DEBUG: findTrends raw data:', data);
       if (data) {
         let trends;
         try {

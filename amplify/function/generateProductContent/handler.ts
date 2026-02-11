@@ -33,17 +33,23 @@ export const handler = async (event: any) => {
     throw new Error('Config Error: GEMINI_API_KEY is not set in environment.');
   }
 
+  // Safe logging of the API key presence and prefix
+  console.log(`API Key detected: ${GEMINI_API_KEY.substring(0, 5)}... (length: ${GEMINI_API_KEY.length})`);
+
   const { productName, productDescription, productUrl } = event.arguments || {};
   if (!productName) throw new Error('productName is required');
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Try stable models that are widely available
+  // Exhaustive list of potential model names
   const modelsToTry = [
     "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
     "gemini-1.5-flash-latest",
     "gemini-1.5-pro",
-    "gemini-1.0-pro"
+    "gemini-1.5-pro-latest",
+    "gemini-1.0-pro",
+    "gemini-pro"
   ];
   let lastError = null;
 

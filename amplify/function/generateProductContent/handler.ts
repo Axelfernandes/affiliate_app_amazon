@@ -17,7 +17,7 @@ function extractJSON(text: string) {
         throw new Error('Invalid JSON structure');
       }
     }
-    throw new Error('No JSON object found in response');
+    throw new Error('No JSON object found in response");
   }
 }
 
@@ -25,47 +25,33 @@ function extractJSON(text: string) {
  * AppSync Lambda Resolver Handler
  */
 export const handler = async (event: any) => {
-  console.log('Received AppSync event:', JSON.stringify(event, null, 2));
-
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-  if (!GEMINI_API_KEY) {
-    throw new Error('Config Error: GEMINI_API_KEY is not set in environment.');
-  }
-
-  // Safe logging of the API key presence and prefix
-  console.log(`API Key detected: ${GEMINI_API_KEY.substring(0, 5)}... (length: ${GEMINI_API_KEY.length})`);
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured.');
 
   const { productName, productDescription, productUrl } = event.arguments || {};
   if (!productName) throw new Error('productName is required');
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Exhaustive list of potential model names
+  // Preferred models in order
   const modelsToTry = [
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
-    "gemini-2.0-pro-exp",
-    "gemini-2.0-flash-exp",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
-    "gemini-1.5-flash-8b",
     "gemini-1.0-pro"
   ];
+
   let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
-      console.log(`Attempting generation with model: ${modelName}`);
       const model = genAI.getGenerativeModel({ model: modelName });
-
-      const prompt = `You are a high-end affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following product to drive Amazon affiliate sales.
+      const prompt = `You are a professional affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following:
       
       Product Name: ${productName}
       ${productDescription ? `Product Description: ${productDescription}` : ''}
       ${productUrl ? `Product URL: ${productUrl}` : ''}
       
-      IMPORTANT: Return ONLY a valid JSON object. No other text.
+      IMPORTANT: Return ONLY a valid JSON object.
       {
         "title": "...",
         "description": "...",
@@ -76,27 +62,21 @@ export const handler = async (event: any) => {
       const response = await result.response;
       const text = response.text().trim();
 
-      console.log(`Success with ${modelName}. Raw Output:`, text);
-
       const parsed = extractJSON(text);
       return JSON.stringify(parsed);
 
     } catch (error: any) {
-      console.warn(`Model ${modelName} failed:`, error?.message);
+      console.warn(`Model ${modelName} attempt failed:`, error?.message);
       lastError = error;
-      // If it's a 404, continue to the next model
-      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
-        continue;
-      }
+      if (error?.message?.includes('404')) continue;
       break;
     }
   }
 
-  // If we reach here, all models failed
-  console.error('All Gemini models failed. Last error:', lastError);
+  // Graceful fallback if all AI attempts fail
   return JSON.stringify({
-    title: `${productName} (AI Draft)`,
-    description: `AI Error: ${lastError?.message || 'Service unreachable'}. Please verify your API key provides access to Gemini 1.5 models.`,
-    whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
+    title: `${productName} (Draft)`,
+    description: "AI generation failed. Please check your configuration or enter details manually.",
+    whyBuy: ["Check API Key", "Verify Model Access", "Manual Review Recommended"]
   });
 };

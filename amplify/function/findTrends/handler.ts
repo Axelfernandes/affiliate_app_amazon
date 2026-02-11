@@ -22,39 +22,24 @@ function extractJSON(text: string) {
 }
 
 export const handler = async (event: any) => {
-  console.log('Received AppSync event:', JSON.stringify(event, null, 2));
-
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY missing');
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured.');
 
   const query = event.arguments?.query || 'bestselling products';
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  const modelsToTry = [
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
-    "gemini-2.0-pro-exp",
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-1.0-pro"
-  ];
+  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro"];
   let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
-      console.log(`Attempting generation with model: ${modelName}`);
       const model = genAI.getGenerativeModel({ model: modelName });
-
-      const simulatedSearchResults = [
-        { title: 'Bestselling Wireless Earbuds on Amazon', url: 'https://amazon.com/earbuds', content: 'Top rated noise-cancelling earbuds, long battery life, comfortable fit.' },
-        { title: 'Popular Smartwatch for Fitness Tracking', url: 'https://amazon.com/smartwatch', content: 'Measures heart rate, GPS, sleep tracking, waterproof.' },
-        { title: 'Gaming Headset for PC and Console', url: 'https://amazon.com/gaming-headset', content: 'Immersive sound, comfortable earcups, detachable mic.' },
+      const simulatedResults = [
+        { title: 'Best Wireless Tech 2024', url: 'https://amazon.com', content: 'Top rated lifestyle tech gadgets.' },
+        { title: 'Smart Home Essentials', url: 'https://amazon.com', content: 'Automate your living space with these picks.' }
       ];
 
-      const prompt = `Identify 3 trending products for: "${query}". Use these results:
-      ${JSON.stringify(simulatedSearchResults)}
-      
+      const prompt = `Identify 3 trending products for: "${query}".
       Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
 
       const result = await model.generateContent(prompt);
@@ -66,15 +51,12 @@ export const handler = async (event: any) => {
     } catch (error: any) {
       console.warn(`Model ${modelName} failed:`, error?.message);
       lastError = error;
-      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
-        continue;
-      }
+      if (error?.message?.includes('404')) continue;
       break;
     }
   }
 
-  console.error('Trend Scout Error:', lastError);
   return JSON.stringify([
-    { productName: "Error: " + (lastError?.message || "Service unreachable"), sourceUrl: "#", reasonForSuggestion: "Please check your AI configuration" }
+    { productName: "Service Busy", sourceUrl: "#", reasonForSuggestion: "AI service currently unavailable." }
   ]);
 };

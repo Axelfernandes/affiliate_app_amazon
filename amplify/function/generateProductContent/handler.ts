@@ -38,14 +38,12 @@ export const handler = async (event: any) => {
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Expanded list of models to try
+  // Try stable models that are widely available
   const modelsToTry = [
     "gemini-1.5-flash",
     "gemini-1.5-flash-latest",
     "gemini-1.5-pro",
-    "gemini-1.5-pro-latest",
-    "gemini-1.0-pro",
-    "gemini-pro"
+    "gemini-1.0-pro"
   ];
   let lastError = null;
 
@@ -83,7 +81,6 @@ export const handler = async (event: any) => {
       if (error?.message?.includes('404') || error?.message?.includes('not found')) {
         continue;
       }
-      // If it's a different error (like quota or key), break and return error
       break;
     }
   }
@@ -92,7 +89,7 @@ export const handler = async (event: any) => {
   console.error('All Gemini models failed. Last error:', lastError);
   return JSON.stringify({
     title: `${productName} (AI Draft)`,
-    description: `AI Error: ${lastError?.message || 'Service unreachable'}`,
+    description: `AI Error: ${lastError?.message || 'Service unreachable'}. Please verify your API key provides access to Gemini 1.5 models.`,
     whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
   });
 };

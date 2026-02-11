@@ -28,32 +28,45 @@ export const handler = async (event: any) => {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY missing');
 
   const query = event.arguments?.query || 'bestselling products';
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+  let lastError = null;
 
-    const simulatedSearchResults = [
-      { title: 'Bestselling Wireless Earbuds on Amazon', url: 'https://amazon.com/earbuds', content: 'Top rated noise-cancelling earbuds, long battery life, comfortable fit.' },
-      { title: 'Popular Smartwatch for Fitness Tracking', url: 'https://amazon.com/smartwatch', content: 'Measures heart rate, GPS, sleep tracking, waterproof.' },
-      { title: 'Gaming Headset for PC and Console', url: 'https://amazon.com/gaming-headset', content: 'Immersive sound, comfortable earcups, detachable mic.' },
-    ];
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Attempting generation with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-    const prompt = `Identify 3 trending products for: "${query}". Use these results:
-    ${JSON.stringify(simulatedSearchResults)}
-    
-    Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
+      const simulatedSearchResults = [
+        { title: 'Bestselling Wireless Earbuds on Amazon', url: 'https://amazon.com/earbuds', content: 'Top rated noise-cancelling earbuds, long battery life, comfortable fit.' },
+        { title: 'Popular Smartwatch for Fitness Tracking', url: 'https://amazon.com/smartwatch', content: 'Measures heart rate, GPS, sleep tracking, waterproof.' },
+        { title: 'Gaming Headset for PC and Console', url: 'https://amazon.com/gaming-headset', content: 'Immersive sound, comfortable earcups, detachable mic.' },
+      ];
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
+      const prompt = `Identify 3 trending products for: "${query}". Use these results:
+      ${JSON.stringify(simulatedSearchResults)}
+      
+      Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
 
-    const parsed = extractJSON(text);
-    return JSON.stringify(parsed);
-  } catch (error: any) {
-    console.error('Trend Scout Error:', error);
-    return JSON.stringify([
-      { productName: "Error: " + (error?.message || "Unknown error"), sourceUrl: "#", reasonForSuggestion: "Please check your AI configuration" }
-    ]);
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text().trim();
+
+      const parsed = extractJSON(text);
+      return JSON.stringify(parsed);
+    } catch (error: any) {
+      console.warn(`Model ${modelName} failed:`, error?.message);
+      lastError = error;
+      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        continue;
+      }
+      break;
+    }
   }
+
+  console.error('Trend Scout Error:', lastError);
+  return JSON.stringify([
+    { productName: "Error: " + (lastError?.message || "Service unreachable"), sourceUrl: "#", reasonForSuggestion: "Please check your AI configuration" }
+  ]);
 };

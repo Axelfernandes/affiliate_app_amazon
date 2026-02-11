@@ -36,39 +36,56 @@ export const handler = async (event: any) => {
   const { productName, productDescription, productUrl } = event.arguments || {};
   if (!productName) throw new Error('productName is required');
 
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // Standard stable model ID
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-    const prompt = `You are a high-end affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following product to drive Amazon affiliate sales.
-    
-    Product Name: ${productName}
-    ${productDescription ? `Product Description: ${productDescription}` : ''}
-    ${productUrl ? `Product URL: ${productUrl}` : ''}
-    
-    IMPORTANT: Return ONLY a valid JSON object. No other text.
-    {
-      "title": "...",
-      "description": "...",
-      "whyBuy": ["point 1", "point 2", "point 3"]
-    }`;
+  // List of models to try in order of preference
+  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+  let lastError = null;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Attempting generation with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-    console.log('Gemini Raw Text Output:', text);
+      const prompt = `You are a high-end affiliate marketing copywriter. Generate a compelling product title, a 3-sentence persuasive description, and 3 key "Why Buy" points for the following product to drive Amazon affiliate sales.
+      
+      Product Name: ${productName}
+      ${productDescription ? `Product Description: ${productDescription}` : ''}
+      ${productUrl ? `Product URL: ${productUrl}` : ''}
+      
+      IMPORTANT: Return ONLY a valid JSON object. No other text.
+      {
+        "title": "...",
+        "description": "...",
+        "whyBuy": ["point 1", "point 2", "point 3"]
+      }`;
 
-    const parsed = extractJSON(text);
-    return JSON.stringify(parsed);
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text().trim();
 
-  } catch (error: any) {
-    console.error('Gemini Execution Error:', error);
-    return JSON.stringify({
-      title: `${productName} (AI Draft)`,
-      description: `AI Error: ${error?.message || 'Unknown error'}`,
-      whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
-    });
+      console.log(`Success with ${modelName}. Raw Output:`, text);
+
+      const parsed = extractJSON(text);
+      return JSON.stringify(parsed);
+
+    } catch (error: any) {
+      console.warn(`Model ${modelName} failed:`, error?.message);
+      lastError = error;
+      // If it's a 404, continue to the next model
+      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        continue;
+      }
+      // If it's a different error (like quota or key), break and return error
+      break;
+    }
   }
+
+  // If we reach here, all models failed
+  console.error('All Gemini models failed. Last error:', lastError);
+  return JSON.stringify({
+    title: `${productName} (AI Draft)`,
+    description: `AI Error: ${lastError?.message || 'Service unreachable'}`,
+    whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
+  });
 };

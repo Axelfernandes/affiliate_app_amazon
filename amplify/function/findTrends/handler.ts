@@ -28,17 +28,17 @@ export const handler = async (event: any) => {
   const query = event.arguments?.query || 'bestselling products';
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro"];
+  // Prioritize Gemini 2.5 Flash
+  const modelsToTry = [
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
+  ];
   let lastError = null;
 
   for (const modelName of modelsToTry) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
-      const simulatedResults = [
-        { title: 'Best Wireless Tech 2024', url: 'https://amazon.com', content: 'Top rated lifestyle tech gadgets.' },
-        { title: 'Smart Home Essentials', url: 'https://amazon.com', content: 'Automate your living space with these picks.' }
-      ];
-
       const prompt = `Identify 3 trending products for: "${query}".
       Return ONLY a JSON array: [{"productName": "...", "sourceUrl": "...", "reasonForSuggestion": "..."}]`;
 
@@ -57,6 +57,6 @@ export const handler = async (event: any) => {
   }
 
   return JSON.stringify([
-    { productName: "Error: " + (lastError?.message || "AI Busy"), sourceUrl: "#", reasonForSuggestion: "AI service currently unavailable." }
+    { productName: "AI Busy", sourceUrl: "#", reasonForSuggestion: "Service currently unavailable: " + (lastError?.message || "Unknown error") }
   ]);
 };

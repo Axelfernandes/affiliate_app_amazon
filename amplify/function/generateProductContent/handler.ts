@@ -33,8 +33,9 @@ export const handler = async (event: any) => {
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  // Preferred models in order
+  // Prioritize Gemini 2.5 Flash as requested, with robust fallbacks
   const modelsToTry = [
+    "gemini-2.5-flash",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-1.0-pro"
@@ -74,10 +75,9 @@ export const handler = async (event: any) => {
   }
 
   // Graceful fallback if all AI attempts fail
-  console.error('All Gemini models failed. Last error:', lastError);
   return JSON.stringify({
     title: `${productName} (Draft)`,
-    description: `AI Error: ${lastError?.message || 'Unknown error'}. Models tried: ${modelsToTry.join(', ')}`,
-    whyBuy: ["Service temporarily unavailable", "Check Secret configuration", "Manual entry recommended"]
+    description: `AI Error: ${lastError?.message || 'Generation failed'}. Please check your configuration or enter details manually.`,
+    whyBuy: ["Check API Key", "Verify Model Access", "Manual Review Recommended"]
   });
 };

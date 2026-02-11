@@ -30,7 +30,14 @@ export const handler = async (event: any) => {
   const query = event.arguments?.query || 'bestselling products';
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-  const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+  const modelsToTry = [
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-latest",
+    "gemini-1.0-pro",
+    "gemini-pro"
+  ];
   let lastError = null;
 
   for (const modelName of modelsToTry) {

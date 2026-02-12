@@ -1,38 +1,59 @@
-import { Bell, ExternalLink, ShieldCheck } from 'lucide-react';
-import { PriceChart } from './PriceChart';
+import { Bell, ExternalLink, ShieldCheck, Sparkles } from "lucide-react";
+import { PriceChart } from "./PriceChart";
 
 // Mock price history for visualization
 const MOCK_PRICE_HISTORY = [
-  { date: '1', price: 100 },
-  { date: '2', price: 95 },
-  { date: '3', price: 105 },
-  { date: '4', price: 89 },
-  { date: '5', price: 92 },
-  { date: '6', price: 85 },
+  { date: "1", price: 100 },
+  { date: "2", price: 95 },
+  { date: "3", price: 105 },
+  { date: "4", price: 89 },
+  { date: "5", price: 92 },
+  { date: "6", price: 85 },
 ];
 
 export default function ProductCard({ product }: { product: any }) {
   // Logic to simulate deal context
   const currentPrice = product.currentPrice || 0;
   const originalPrice = product.originalPrice || 0;
-  const discount = originalPrice > 0 ? Math.round((1 - currentPrice / originalPrice) * 100) : 0;
+  const discount =
+    originalPrice > 0
+      ? Math.round((1 - currentPrice / originalPrice) * 100)
+      : 0;
   const hasBigDiscount = discount >= 20;
   const lastChecked = "2 mins ago";
 
-  const history = typeof product.priceHistory === 'string'
-    ? JSON.parse(product.priceHistory)
-    : (Array.isArray(product.priceHistory) ? product.priceHistory : MOCK_PRICE_HISTORY);
+  const history =
+    typeof product.priceHistory === "string"
+      ? JSON.parse(product.priceHistory)
+      : Array.isArray(product.priceHistory)
+        ? product.priceHistory
+        : MOCK_PRICE_HISTORY;
 
   return (
     <div className="bg-white border border-slate-200 rounded-3xl p-6 group flex flex-col gap-4 relative overflow-hidden shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-indigo-100 transition-all duration-300">
-      {/* Discount Badge - Top Right */}
-      {hasBigDiscount && (
-        <div className="absolute top-4 right-4 z-10">
-          <div className="bg-emerald-600 text-white font-display font-extrabold px-3 py-1 rounded-full text-sm shadow-lg shadow-emerald-100">
-            {discount}% OFF
+      {/* Product Image Stage */}
+      <div className="relative -mx-6 -mt-6 mb-2 h-48 overflow-hidden bg-slate-100">
+        {product.images && product.images.length > 0 ? (
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="w-full h-full object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-300">
+            <Sparkles size={48} className="opacity-20" />
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Discount Badge - Layered over image */}
+        {hasBigDiscount && (
+          <div className="absolute top-4 right-4 z-10">
+            <div className="bg-emerald-600 text-white font-display font-extrabold px-3 py-1 rounded-full text-sm shadow-lg shadow-emerald-100">
+              {discount}% OFF
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Product Discovery Area */}
       <div className="space-y-2">
@@ -47,9 +68,13 @@ export default function ProductCard({ product }: { product: any }) {
 
       {/* Price Scannability Module */}
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-display font-black text-slate-900">${currentPrice || '---'}</span>
+        <span className="text-3xl font-display font-black text-slate-900">
+          ${currentPrice || "---"}
+        </span>
         {originalPrice > 0 && originalPrice > currentPrice && (
-          <span className="text-sm text-slate-400 line-through font-medium">${originalPrice}</span>
+          <span className="text-sm text-slate-400 line-through font-medium">
+            ${originalPrice}
+          </span>
         )}
       </div>
 
@@ -58,7 +83,9 @@ export default function ProductCard({ product }: { product: any }) {
         <PriceChart data={history} className="h-full w-full" />
         <div className="flex justify-between text-[10px] text-slate-400 font-bold px-1 uppercase tracking-tighter">
           <span>{history.length} Data points</span>
-          <span className="text-emerald-600">Lowest: ${Math.min(...history.map((h: any) => h.price))}</span>
+          <span className="text-emerald-600">
+            Lowest: ${Math.min(...history.map((h: any) => h.price))}
+          </span>
         </div>
       </div>
 
@@ -67,7 +94,7 @@ export default function ProductCard({ product }: { product: any }) {
         <div className="flex gap-2">
           {/* Main CTA */}
           <a
-            href={product.affiliateLink || '#'}
+            href={product.affiliateLink || "#"}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 btn-premium bg-indigo-600 text-white hover:bg-indigo-700 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
@@ -90,9 +117,13 @@ export default function ProductCard({ product }: { product: any }) {
           </div>
 
           <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
-            <span className="text-[10px] text-indigo-600/60 font-bold">Last checked: {lastChecked}</span>
+            <span className="text-[10px] text-indigo-600/60 font-bold">
+              Last checked: {lastChecked}
+            </span>
             <div className="group/disclosure relative">
-              <span className="text-[10px] text-slate-300 underline cursor-help font-bold">*Commission may be earned</span>
+              <span className="text-[10px] text-slate-300 underline cursor-help font-bold">
+                *Commission may be earned
+              </span>
             </div>
           </div>
         </div>

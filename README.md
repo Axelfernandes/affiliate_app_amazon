@@ -10,7 +10,7 @@
 
 ## ✨ Features
 
-- **🛡️ Secret Guard**: Native Husky + Git hooks integration to prevent sensitive `.env` leaks.
+
 - **📈 Real Price Tracking**: Live 1:1 price tracking with historical delta visualization (Keepa-style).
 - **🌪️ AI Forge**: High-fidelity product review generation using **Gemini 2.5 Flash**.
 - **🔌 Multi-API Fusion**: Automated data fetching from **Rainforest (Amazon)** and **Best Buy** for factual accuracy.

@@ -78,4 +78,4 @@ npm run dev
 ---
 
 ## ⚖️ License
-Released under the MIT License. Built with ❤️ by Antigravity.
+Released under the MIT License. Built with ❤️ by Axel

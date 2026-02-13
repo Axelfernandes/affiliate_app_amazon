@@ -1,15 +1,18 @@
 version: 1
-frontend:
+backend:
   phases:
-    preBuild:
-      commands:
-        - npm ci
     build:
       commands:
         - echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
         - echo "BEST_BUY_API_KEY=$BEST_BUY_API_KEY" >> .env
         - echo "RAINFOREST_API_AMAZON=$RAINFOREST_API_AMAZON" >> .env
         - echo "VITE_GTM_ID=$VITE_GTM_ID" >> .env
+        - npm ci --cache .npm --prefer-offline
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+frontend:
+  phases:
+    build:
+      commands:
         - npm run build
   artifacts:
     baseDirectory: dist
@@ -17,4 +20,4 @@ frontend:
       - "**/*"
   cache:
     paths:
-      - node_modules/**/*
+      - .npm/**/*

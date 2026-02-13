@@ -1,5 +1,5 @@
 import { defineFunction, secret } from "@aws-amplify/backend";
-import { NodeVersion } from "@aws-amplify/backend-function";
+import type { NodeVersion } from "@aws-amplify/backend-function";
 
 export const generateProductContent = defineFunction({
   name: "generateProductContent",

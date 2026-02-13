@@ -1,5 +1,7 @@
-name,url,reason
-"Logitech MX Master 3S","https://www.amazon.com/dp/B09HM94V6G","High-end productivity mouse"
-"Sony WH-1000XM5","https://www.amazon.com/dp/B09XS7JWHH","Industry-leading noise cancellation"
-"Apple 2024 MacBook Air M3","https://www.amazon.com/dp/B0CX2257N1","Perfect balance of power and portability"
-"TP-Link Wi-Fi 7 Router","https://www.amazon.com/dp/B0CQS9N9Y3","Future-proof home networking"
+productName,sourceUrl,category,store,reasonForSuggestion
+"Logitech MX Master 3S","https://www.amazon.com/dp/B09HM94V6G","Electronics","Amazon","Best office mouse 2024"
+"Sony WH-1000XM5","https://www.amazon.com/dp/B09XS7JWHH","Electronics","Amazon","Top rated noise cancelling"
+"Ninja Air Fryer AF101","https://www.amazon.com/dp/B07FDJMC9Q","Kitchen","Amazon","Must-have kitchen appliance"
+"Apple 2024 MacBook Air","https://www.amazon.com/dp/B0CX2257N1","Electronics","Amazon","M3 chip productivity"
+"Nike Air Max 270","https://www.nike.com/t/air-max-270-shoes","Fashion","Other","Classic comfort"
+"Dyson V15 Detect","https://www.bestbuy.com/site/dyson-v15-detect-cordless-vacuum/6451334.p","Home","Best Buy","Incredible suction power"

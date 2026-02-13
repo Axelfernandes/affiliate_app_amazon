@@ -5,6 +5,38 @@ console.log("LAMBDA LOADED - Global scope initialization success");
 /**
  * Robustly extract and parse JSON from AI response
  */
+/**
+ * Helper to resolve shortened URLs (like amzn.to)
+ */
+async function resolveUrl(url: string): Promise<string> {
+  if (
+    !url.includes("amzn.to") &&
+    !url.includes("bit.ly") &&
+    !url.includes("tinyurl.com") &&
+    !url.includes("t.co")
+  ) {
+    return url;
+  }
+
+  console.log(`[RESOLVER] Resolving shortened URL: ${url}`);
+  try {
+    // Some redirectors block HEAD or lack of UA
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+      },
+    });
+    console.log(`[RESOLVER] Resolved to: ${response.url}`);
+    return response.url;
+  } catch (err) {
+    console.warn(`[RESOLVER ERROR] Failed to resolve ${url}:`, err);
+    return url;
+  }
+}
+
 function extractJSON(text: string) {
   try {
     return JSON.parse(text);
@@ -31,22 +63,48 @@ function extractJSON(text: string) {
  * Fetch factual data from Rainforest API (Amazon)
  */
 async function fetchRainforestData(url: string, apiKey: string) {
-  console.log("[RAINFOREST] Fetching data for:", url);
+  const resolvedUrl = await resolveUrl(url);
+  console.log("[RAINFOREST] Fetching data for:", resolvedUrl);
   try {
-    const response = await fetch(
-      `https://api.rainforestapi.com/request?api_key=${apiKey}&type=product&url=${encodeURIComponent(url)}`,
+    // Broader ASIN extraction regex
+    const asinMatch = resolvedUrl.match(
+      /(?:dp|gp\/product|exec\/obidos\/asin|product-reviews|aw\/d|vdp)\/(?:[a-zA-Z0-9-]+\/)?([A-Z0-9]{10})/i,
     );
+    const asin = asinMatch ? asinMatch[1] : null;
+
+    let apiUrl = `https://api.rainforestapi.com/request?api_key=${apiKey}&type=product`;
+    if (asin) {
+      apiUrl += `&asin=${asin}&amazon_domain=amazon.com`;
+      console.log(`[RAINFOREST] Using extracted ASIN: ${asin}`);
+    } else {
+      apiUrl += `&url=${encodeURIComponent(resolvedUrl)}`;
+    }
+
+    const response = await fetch(apiUrl);
     const data = (await response.json()) as any;
 
     if (data.product) {
       const p = data.product;
+      console.log(`[RAINFOREST SUCCESS] Found product: ${p.title}`);
+
+      // Rainforest images can be in 'images' array or 'main_image'
+      let imgs = p.images?.map((img: any) => img.link) || [];
+      if (imgs.length === 0 && p.main_image?.link) {
+        imgs = [p.main_image.link];
+      }
+
       return {
         title: p.title,
         price: p.buybox_winner?.price?.value || p.price?.value,
         msrp: p.list_price?.value || p.rrp?.value,
-        images: p.images?.map((img: any) => img.link) || [],
+        images: imgs,
         description: p.description || p.feature_bullets?.join(" "),
       };
+    } else {
+      console.warn(
+        "[RAINFOREST] Product not found in response:",
+        data.message || "No details",
+      );
     }
   } catch (err) {
     console.error("[RAINFOREST ERROR]", err);
@@ -58,27 +116,40 @@ async function fetchRainforestData(url: string, apiKey: string) {
  * Fetch factual data from Best Buy API
  */
 async function fetchBestBuyData(url: string, apiKey: string) {
-  console.log("[BEST BUY] Fetching data for:", url);
+  const resolvedUrl = await resolveUrl(url);
+  console.log("[BEST BUY] Fetching data for:", resolvedUrl);
   try {
-    // Extract SKU from URL if possible (e.g., /site/.../skuId=12345)
-    const skuMatch = url.match(/skuId=(\d+)/);
+    const skuMatch = resolvedUrl.match(/skuId=(\d+)/);
     const sku = skuMatch ? skuMatch[1] : null;
 
     if (sku) {
+      console.log(`[BEST BUY] Using SKU: ${sku}`);
       const response = await fetch(
-        `https://api.bestbuy.com/v1/products(${sku}).json?apiKey=${apiKey}&show=name,regularPrice,salePrice,images,shortDescription`,
+        `https://api.bestbuy.com/v1/products(${sku}).json?apiKey=${apiKey}&show=name,regularPrice,salePrice,images,image,largeImage,shortDescription`,
       );
       const data = (await response.json()) as any;
       if (data.products && data.products[0]) {
         const p = data.products[0];
+        console.log(`[BEST BUY SUCCESS] Found product: ${p.name}`);
+
+        let imgs = p.images?.map((img: any) => img.href) || [];
+        if (imgs.length === 0) {
+          if (p.largeImage) imgs.push(p.largeImage);
+          if (p.image) imgs.push(p.image);
+        }
+
         return {
           title: p.name,
           price: p.salePrice,
           msrp: p.regularPrice,
-          images: p.images?.map((img: any) => img.href) || [],
-          description: p.shortDescription,
+          images: imgs,
+          description: p.shortDescription || p.name,
         };
+      } else {
+        console.warn("[BEST BUY] SKU not found in API response");
       }
+    } else {
+      console.warn("[BEST BUY] Could not extract SKU from URL");
     }
   } catch (err) {
     console.error("[BEST BUY ERROR]", err);
@@ -109,14 +180,26 @@ export const handler = async (event: any) => {
 
     // 1. Fetch factual data if a URL is provided
     let factualData: any = null;
+    let detectedStore = "Other";
     if (productUrl) {
-      if (productUrl.includes("amazon.com") || productUrl.includes("amzn.to")) {
+      const lowerUrl = productUrl.toLowerCase();
+      if (
+        lowerUrl.includes("amazon.") ||
+        lowerUrl.includes("amzn.to") ||
+        lowerUrl.includes("a.co")
+      ) {
+        detectedStore = "Amazon";
         factualData = await fetchRainforestData(
           productUrl,
           RAINFOREST_API_KEY || "",
         );
-      } else if (productUrl.includes("bestbuy.com")) {
+      } else if (lowerUrl.includes("bestbuy.com")) {
+        detectedStore = "Best Buy";
         factualData = await fetchBestBuyData(productUrl, BB_API_KEY || "");
+      } else if (lowerUrl.includes("walmart.com")) {
+        detectedStore = "Walmart";
+      } else if (lowerUrl.includes("target.com")) {
+        detectedStore = "Target";
       }
     }
 
@@ -126,6 +209,8 @@ export const handler = async (event: any) => {
     const contextMsrp = factualData?.msrp || "";
     const contextDesc = factualData?.description || productDescription || "";
     const contextImages = factualData?.images || [];
+
+    console.log(`[CONTEXT] Images found: ${contextImages.length}`);
 
     console.log("Initializing GoogleGenerativeAI SDK...");
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -159,9 +244,10 @@ export const handler = async (event: any) => {
         3. 3 key "Why Buy" points based on the specs.
         4. Confirm the current price (return numeric value only).
         5. Confirm the original price (return numeric value only).
+        6. Determine the most accurate category from this list: Electronics, Fashion, Home, Gaming, Health, Outdoor, Kitchen, Other.
 
         Return ONLY valid JSON:
-        {"title": "...", "description": "...", "whyBuy": ["...", "...", "..."], "currentPrice": 0.0, "originalPrice": 0.0}`;
+        {"title": "...", "description": "...", "whyBuy": ["...", "...", "..."], "currentPrice": 0.0, "originalPrice": 0.0, "category": "..."}`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -170,14 +256,24 @@ export const handler = async (event: any) => {
         const parsed = extractJSON(text);
 
         // 3. Data Fusion: Inject fetched images if missing or empty from AI
-        return JSON.stringify({
+        const finalResult = {
           ...parsed,
           images:
             contextImages.length > 0 ? contextImages : parsed.images || [],
           // Ensure we use factual prices if AI didn't catch them accurately
           currentPrice: contextPrice || parsed.currentPrice,
           originalPrice: contextMsrp || parsed.originalPrice,
-        });
+          store: detectedStore,
+          category: parsed.category || "Other",
+        };
+
+        // Final safety check for images array
+        if (!finalResult.images) finalResult.images = [];
+
+        console.log(
+          `[FINAL SUCCESS] Returning images: ${finalResult.images.length}`,
+        );
+        return JSON.stringify(finalResult);
       } catch (error: any) {
         console.error(
           `[ERROR] Model ${modelName} failed:`,

@@ -77,5 +77,40 @@ npm run dev
 
 ---
 
+## ☁️ Deployment
+
+Auto-Niche is built for **AWS Amplify Gen 2**. Follow these steps to launch your production instance:
+
+### 1. Push to GitHub
+Ensure all your changes are pushed to your repository:
+```bash
+git add .
+git commit -m "Ready for production"
+git push origin main
+```
+
+### 2. Connect to AWS Amplify
+1. Navigate to the [AWS Amplify Console](https://console.aws.amazon.com/amplify).
+2. Click **Create new app** or **All apps > New app**.
+3. Select **GitHub** as the source and select your `affiliate_app_amazon` repository.
+4. Choose the **Gen 2** deployment method.
+
+### 3. Configure Secrets (CRITICAL)
+Your Lambda functions require API keys to function. In the AWS Amplify Console:
+1. Go to **App Settings > Environment variables**.
+2. Add the following keys:
+   - `GEMINI_API_KEY`: Your Google AI Studio key.
+   - `RAINFOREST_API_AMAZON`: Your Rainforest API key.
+   - `BEST_BUY_API_KEY`: Your Best Buy Developer key.
+3. *Alternatively*, use the CLI to set secrets before the first build:
+   ```bash
+   npx ampx sandbox secret set GEMINI_API_KEY
+   ```
+
+### 4. Deploy
+Amplify will automatically detect your `amplify` folder and start the provisioning, building, and deploying process. Once finished, you'll receive a production URL.
+
+---
+
 ## ⚖️ License
 Released under the MIT License. Built with ❤️ by Axel

@@ -10,21 +10,45 @@ type Suggestion = {
   reasonForSuggestion: string;
 };
 
+const QUICK_IDEAS = [
+  {
+    label: "Kitchen Gear",
+    query: "trending kitchen appliances and high-end cooking tools",
+  },
+  {
+    label: "Gaming Setup",
+    query: "aesthetic gaming peripherals and ergonomic desk gear",
+  },
+  {
+    label: "Solar Tech",
+    query: "portable solar panels and sustainable battery solutions",
+  },
+  {
+    label: "Outdoor Gear",
+    query: "ultralight camping equipment and hiking essentials",
+  },
+  {
+    label: "Smart Home",
+    query: "innovative smart home security and automation devices",
+  },
+];
+
 export default function TrendScout() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set());
 
-  const handleFindTrends = async () => {
-    if (!searchQuery) return;
+  const handleFindTrends = async (overrideQuery?: string) => {
+    const queryToUse = overrideQuery || searchQuery;
+    if (!queryToUse) return;
     setIsLoading(true);
     setSuggestions([]);
     setSavedIndices(new Set());
     try {
       const client = generateClient<Schema>();
       const { data, errors } = await client.queries.findTrends({
-        query: searchQuery,
+        query: queryToUse,
       });
       if (data) {
         let trends = typeof data === "string" ? JSON.parse(data) : data;
@@ -36,6 +60,11 @@ export default function TrendScout() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleIdeaClick = (query: string, label: string) => {
+    setSearchQuery(label);
+    handleFindTrends(query);
   };
 
   const handleAddSuggestionAsProduct = async (
@@ -73,6 +102,20 @@ export default function TrendScout() {
           </p>
         </div>
 
+        {/* Quick Ideas Toggle */}
+        <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+          {QUICK_IDEAS.map((idea) => (
+            <button
+              key={idea.label}
+              onClick={() => handleIdeaClick(idea.query, idea.label)}
+              disabled={isLoading}
+              className="px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              + {idea.label}
+            </button>
+          ))}
+        </div>
+
         <div className="w-full max-w-lg relative group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search
@@ -91,7 +134,7 @@ export default function TrendScout() {
         </div>
 
         <button
-          onClick={handleFindTrends}
+          onClick={() => handleFindTrends()}
           disabled={isLoading || !searchQuery}
           className="btn-premium bg-indigo-600 text-white px-10 py-4 font-black shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 disabled:grayscale"
         >
